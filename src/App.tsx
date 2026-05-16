@@ -155,11 +155,11 @@ const SEED_DATA = [
 ];
 
 // ── Tiny components ───────────────────────────────────────────────────────────
-const Badge = ({ label, color, small }) => (
+const Badge = ({ label, color, small=false }: any) => (
   <span style={{ display:"inline-block", padding: small?"2px 7px":"3px 10px", borderRadius:99, fontSize: small?10:11, fontWeight:600, background: color+"28", color, border:`1px solid ${color}40`, whiteSpace:"nowrap" }}>{label}</span>
 );
 
-const Btn = ({ children, onClick, variant="primary", small, full, sx }) => {
+const Btn = ({ children, onClick, variant="primary", small=false, full=false, sx={} }: any) => {
   const vs = { primary:{bg:"#2a2d3e",color:P.text,border:`1px solid ${P.border}`}, accent:{bg:"#1e2a38",color:P.anime,border:`1px solid ${P.anime}60`}, ghost:{bg:"transparent",color:P.muted,border:`1px solid ${P.border}`}, danger:{bg:"#2a1818",color:"#a06060",border:"1px solid #a0606040"} };
   const v = vs[variant]||vs.primary;
   return <button onClick={onClick} style={{ padding: small?"5px 12px":"9px 18px", borderRadius:8, fontSize:small?12:13, fontWeight:600, cursor:"pointer", fontFamily:"'DM Sans',sans-serif", background:v.bg, color:v.color, border:v.border, width:full?"100%":"auto", ...sx }}>
@@ -198,7 +198,7 @@ const Modal = ({ open, onClose, title, children }) => {
 const Cover = ({ src, title, size = 56, radius = 8 }) => {
   const bg = strColor(title || "x");
   const initials = (title||"?").split(" ").slice(0,2).map(w=>w[0]).join("").toUpperCase();
-  if (src) return <img src={src} alt={title} style={{ width:size, minWidth:size, height:size*1.4, objectFit:"cover", borderRadius:radius, background:bg }} onError={e=>{e.target.style.display="none"}} />;
+  if (src) return <img src={src} alt={title} style={{ width:size, minWidth:size, height:size*1.4, objectFit:"cover", borderRadius:radius, background:bg }} onError={e=>{(e.target as HTMLImageElement).style.display="none"}} />;
   return <div style={{ width:size, minWidth:size, height:size*1.4, borderRadius:radius, background:bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:size*0.22, fontWeight:700, color:"rgba(255,255,255,0.5)", fontFamily:"'Syne',sans-serif", flexShrink:0 }}>{initials}</div>;
 };
 
@@ -266,7 +266,7 @@ const SwipeCard = ({ entry, onEdit, onDelete, onTap, onCoverChange, accent }) =>
   );
 };
 
-const Section = ({ title, open, onToggle, children }) => (
+const Section = ({ title, open, onToggle, children }: any) => (
   <div style={{ background:P.surface, border:`1px solid ${P.border}`, borderRadius:12, marginBottom:12, overflow:"hidden" }}>
     <div onClick={onToggle} style={{ padding:"12px 14px", display:"flex", justifyContent:"space-between", alignItems:"center", cursor:"pointer" }}>
       <div style={{ fontSize:11, fontWeight:700, color:P.muted, letterSpacing:"0.07em", textTransform:"uppercase" }}>{title}</div>
@@ -481,7 +481,7 @@ const CatScreen = ({ cat, entries, onSave, onDelete, onAdd }) => {
 
   const hasChapter = ["manhwa","books","wattpad","adult"].includes(cat);
   const statuses = hasChapter ? ["All","Reading","Completed","Plan to Read","On Hiatus","Dropped"] : ["All","Watching","Completed","Plan to Watch","On Hold","Dropped"];
-  const subCats = ["All", ...new Set(entries.map(e=>e.subCat).filter(Boolean))];
+  const subCats: string[] = ["All", ...new Set(entries.map((e:any)=>e.subCat).filter(Boolean))] as string[];
 
   const shown = entries.filter(e => {
     if (search && !e.title.toLowerCase().includes(search.toLowerCase())) return false;
