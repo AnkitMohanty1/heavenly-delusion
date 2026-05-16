@@ -106,32 +106,36 @@ const fetchCover = async (title, cat) => {
   return null;
 };
 
-const useCoverFetcher = (entries, setEntries) => {
-  const fetchedRef = useRef(new Set());
+const useCoverFetcher = (entries: any[], setEntries: any) => {
+  const fetchedRef = useRef<Set<string>>(new Set());
+  const coversRef = useRef<Record<string, string>>({});
+
   useEffect(() => {
-    const toFetch = entries.filter(e =>
+    const toFetch = entries.filter((e: any) =>
       !e.cover &&
       ["anime","manhwa","movies","shows","kdrama"].includes(e.cat) &&
       !fetchedRef.current.has(e.id)
     );
     if (!toFetch.length) return;
-    // fetch in small batches to avoid rate limiting
+
     let i = 0;
     const next = async () => {
       if (i >= toFetch.length) return;
       const entry = toFetch[i++];
       fetchedRef.current.add(entry.id);
-      // Jikan rate limit: 3 req/sec, so add delay for anime/manhwa
       if (entry.cat === "anime" || entry.cat === "manhwa") {
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 450));
       }
       const cover = await fetchCover(entry.title, entry.cat);
       if (cover) {
-        setEntries(es => es.map(e => e.id === entry.id ? { ...e, cover } : e));
+        coversRef.current[entry.id] = cover;
+        // batch update using functional form so we always have latest state
+        setEntries((es: any[]) => es.map((e: any) => 
+          coversRef.current[e.id] ? { ...e, cover: coversRef.current[e.id] } : e
+        ));
       }
       next();
     };
-    // start 2 parallel chains
     next(); next();
   }, [entries.length]);
 };
