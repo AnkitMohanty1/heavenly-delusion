@@ -57,8 +57,21 @@ const strColor = (str) => {
 };
 
 const useLS = (key, def) => {
-  const [v, setV] = useState(() => { try { const s = localStorage.getItem(key); return s ? JSON.parse(s) : def; } catch { return def; } });
-  const save = useCallback((x) => { const n = typeof x === "function" ? x(v) : x; setV(n); try { localStorage.setItem(key, JSON.stringify(n)); } catch {} }, [key, v]);
+  const [v, setV] = useState(() => { 
+    try { 
+      const s = localStorage.getItem(key); 
+      if (s) {
+        const parsed = JSON.parse(s);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+      return def; 
+    } catch { return def; } 
+  });
+  const save = useCallback((x: any) => { 
+    const n = typeof x === "function" ? x(v) : x; 
+    setV(n); 
+    try { localStorage.setItem(key, JSON.stringify(n)); } catch {} 
+  }, [key, v]);
   return [v, save];
 };
 
