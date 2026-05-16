@@ -1,4 +1,63 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { createClient } from "@supabase/supabase-js";
+
+const SUPABASE_URL = "https://yelvjnoahxrzcyjijahg.supabase.co";
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InllbHZqbm9haHhyemN5amlqYWhnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MTAxMDUsImV4cCI6MjA5NDQ4NjEwNX0.ml2GaDv9uv4n1Ka33Y3bWcU6_75xdxw67poDf9VfAUA";
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ── Supabase sync ─────────────────────────────────────────────────────────────
+const useSupabaseEntries = (seed: any[]) => {
+  const [entries, setEntries] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+
+  // Load from Supabase on mount
+  useEffect(() => {
+    const load = async () => {
+      const { data, error } = await supabase.from("entries").select("*");
+      if (error) {
+        // fallback to localStorage
+        try {
+          const s = localStorage.getItem("ml_entries_v2");
+          if (s) { const p = JSON.parse(s); if (p.length > 0) { setEntries(p); setLoaded(true); return; } }
+        } catch {}
+        setEntries(seed);
+      } else if (data && data.length > 0) {
+        setEntries(data.map((row: any) => row.data));
+      } else {
+        // First time — seed the database
+        const rows = seed.map((e: any) => ({ id: e.id, data: e }));
+        await supabase.from("entries").insert(rows);
+        setEntries(seed);
+      }
+      setLoaded(true);
+    };
+    load();
+  }, []);
+
+  const saveEntry = useCallback(async (updated: any) => {
+    setEntries(es => es.map((e: any) => e.id === updated.id ? updated : e));
+    await supabase.from("entries").upsert({ id: updated.id, data: updated });
+  }, []);
+
+  const deleteEntry = useCallback(async (id: string) => {
+    setEntries(es => es.filter((e: any) => e.id !== id));
+    await supabase.from("entries").delete().eq("id", id);
+  }, []);
+
+  const addEntry = useCallback(async (entry: any) => {
+    setEntries(es => [entry, ...es]);
+    await supabase.from("entries").insert({ id: entry.id, data: entry });
+  }, []);
+
+  // Also save to localStorage as backup
+  useEffect(() => {
+    if (loaded && entries.length > 0) {
+      try { localStorage.setItem("ml_entries_v2", JSON.stringify(entries)); } catch {}
+    }
+  }, [entries, loaded]);
+
+  return { entries, setEntries, saveEntry, deleteEntry, addEntry, loaded };
+};
 
 // ── Palette ──────────────────────────────────────────────────────────────────
 const P = {
@@ -667,22 +726,26 @@ const SettingsScreen = ({ hidden, onToggle, onClear }) => (
 
 // ── Root App ──────────────────────────────────────────────────────────────────
 export default function App() {
-  const [entries, setEntries] = useLS("ml_entries_v2", SEED_DATA);
+  const { entries, setEntries, saveEntry, deleteEntry, addEntry, loaded } = useSupabaseEntries(SEED_DATA);
   const [hiddenCats, setHiddenCats] = useLS("ml_hidden", []);
   const [activeTab, setActiveTab] = useState("home");
-  const [activeCat, setActiveCat] = useState(null);
+  const [activeCat, setActiveCat] = useState<string|null>(null);
 
   const BASE_CATS = ["anime","manhwa","shows","movies","books"];
   const OPTIONAL_CATS = ["kdrama","wattpad","adult"];
-  const visibleCats = [...BASE_CATS, ...OPTIONAL_CATS.filter(c=>!hiddenCats.includes(c))];
+  const visibleCats = [...BASE_CATS, ...OPTIONAL_CATS.filter((c:string)=>!hiddenCats.includes(c))];
 
-  const saveEntry = useCallback((updated) => setEntries(es => es.map(e => e.id===updated.id ? updated : e)), [setEntries]);
-  const deleteEntry = useCallback((id) => setEntries(es => es.filter(e => e.id!==id)), [setEntries]);
-  const addEntry = useCallback((entry) => setEntries(es => [entry, ...es]), [setEntries]);
-  const toggleHide = (cat) => setHiddenCats(h => h.includes(cat) ? h.filter(x=>x!==cat) : [...h,cat]);
+  const toggleHide = (cat: string) => setHiddenCats((h: string[]) => h.includes(cat) ? h.filter((x:string)=>x!==cat) : [...h,cat]);
 
   // Auto-fetch covers in background
   useCoverFetcher(entries, setEntries);
+
+  if (!loaded) return (
+    <div style={{ height:"100vh", background:"#0e0f13", display:"flex", alignItems:"center", justifyContent:"center", color:"#5a5870", fontFamily:"'DM Sans',sans-serif", flexDirection:"column", gap:12 }}>
+      <div style={{ fontSize:32 }}>⛩</div>
+      <div>Loading MEDIALOG...</div>
+    </div>
+  );
 
   const goToCat = (cat) => { setActiveCat(cat); setActiveTab("cat"); };
 
@@ -733,7 +796,7 @@ export default function App() {
           </div>
         )}
         {activeTab === "settings" && (
-          <SettingsScreen hidden={hiddenCats} onToggle={toggleHide} onClear={()=>{ setEntries([]); }} />
+          <SettingsScreen hidden={hiddenCats} onToggle={toggleHide} onClear={async ()=>{ await supabase.from('entries').delete().neq('id',''); setEntries([]); }} />
         )}
       </div>
 
