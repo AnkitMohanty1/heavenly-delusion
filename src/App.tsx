@@ -242,11 +242,7 @@ const SwipeCard = ({ entry, onEdit, onDelete, onTap, onCoverChange, accent }) =>
         onClick={() => { if (!isDragging.current && offset === 0) onTap(); }}
         style={{ position:"relative", zIndex:1, background:P.card, border:`1px solid ${P.border}`, borderRadius:12, padding:"12px", display:"flex", gap:12, transform:`translateX(${offset}px)`, transition: Math.abs(offset) < 5 ? "transform 0.25s ease" : "none", cursor:"pointer" }}
       >
-        
-          <Cover src={entry.cover} title={entry.title} size={52} />
-          
-          
-        
+        <Cover src={entry.cover} title={entry.title} size={52} />
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontWeight:600, fontSize:14, color:P.text, marginBottom:5, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{entry.title}</div>
           <div style={{ display:"flex", flexWrap:"wrap", gap:4, marginBottom: progress !== null ? 7 : 0 }}>
